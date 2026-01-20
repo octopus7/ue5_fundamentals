@@ -13,7 +13,6 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 
-
 ATopDownCharacter::ATopDownCharacter() {
   PrimaryActorTick.bCanEverTick = true;
 
@@ -34,14 +33,13 @@ ATopDownCharacter::ATopDownCharacter() {
   CameraBoom->SetUsingAbsoluteRotation(true);
   CameraBoom->TargetArmLength = CameraArmLength;
   CameraBoom->SetRelativeRotation(FRotator(CameraPitch, 0.f, 0.f));
-  CameraBoom->bDoCollisionTest = false; // No collision for fixed camera
+  CameraBoom->bDoCollisionTest = false;
 
   // Create follow camera
   TopDownCamera =
       CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
   TopDownCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-  TopDownCamera->bUsePawnControlRotation =
-      false; // Camera does not rotate relative to arm
+  TopDownCamera->bUsePawnControlRotation = false;
 }
 
 void ATopDownCharacter::BeginPlay() {
@@ -106,10 +104,15 @@ void ATopDownCharacter::SetupPlayerInputComponent(
     UInputComponent *PlayerInputComponent) {
   Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+  // Load config if not already loaded (SetupPlayerInputComponent called before
+  // BeginPlay)
+  if (!CachedConfig) {
+    LoadConfiguration();
+  }
+
   // Set up action bindings with Enhanced Input
   if (UEnhancedInputComponent *EnhancedInputComponent =
           Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-    // Get move action from config
     if (UCharacterSystemConfig *Config = GetConfig()) {
       if (UInputAction *MoveAction = Config->MoveAction.LoadSynchronous()) {
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered,
@@ -120,16 +123,13 @@ void ATopDownCharacter::SetupPlayerInputComponent(
 }
 
 void ATopDownCharacter::Move(const FInputActionValue &Value) {
-  // Input is a Vector2D
   FVector2D MovementVector = Value.Get<FVector2D>();
 
   if (Controller != nullptr) {
-    // World-space movement (top-down: X is forward/back, Y is left/right)
-    // WASD: W/S affect Y (forward/back), A/D affect X (left/right)
+    // Y input -> World X, X input -> World Y
     const FVector MoveDirection =
         FVector(MovementVector.Y, MovementVector.X, 0.f);
 
-    // Add movement input in world space
     AddMovementInput(MoveDirection, 1.0f, false);
   }
 }
@@ -137,19 +137,14 @@ void ATopDownCharacter::Move(const FInputActionValue &Value) {
 void ATopDownCharacter::UpdateCharacterRotation() {
   FVector MouseLocation;
   if (GetMouseWorldLocation(MouseLocation)) {
-    // Calculate direction from character to mouse
     FVector Direction = MouseLocation - GetActorLocation();
     Direction.Z = 0.f;
 
     if (!Direction.IsNearlyZero()) {
-      // Calculate target rotation
       FRotator TargetRotation = Direction.Rotation();
-
-      // Smoothly interpolate to target rotation
       FRotator NewRotation =
           FMath::RInterpTo(GetActorRotation(), TargetRotation,
                            GetWorld()->GetDeltaSeconds(), RotationInterpSpeed);
-
       SetActorRotation(NewRotation);
     }
   }
