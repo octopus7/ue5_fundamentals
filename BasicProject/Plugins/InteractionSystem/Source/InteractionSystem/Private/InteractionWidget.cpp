@@ -42,6 +42,7 @@ FText UInteractionWidget::GetDisplayText() const {
 
 void UInteractionWidget::ShowTextPanel() {
   TargetTextPanelOpacity = 1.0f;
+  TargetTextPanelScale = 1.0f;
   bIsTextPanelAnimating = true;
 
   if (TextPanel) {
@@ -53,10 +54,14 @@ void UInteractionWidget::HideTextPanelImmediate() {
   // Immediately hide without animation
   TargetTextPanelOpacity = 0.0f;
   CurrentTextPanelOpacity = 0.0f;
+  TargetTextPanelScale = 0.0f;
+  CurrentTextPanelScale = 0.0f;
+  TextPanelScaleVelocity = 0.0f;
   bIsTextPanelAnimating = false;
 
   if (TextPanel) {
     TextPanel->SetRenderOpacity(0.0f);
+    TextPanel->SetRenderScale(FVector2D(0.0f, 0.0f));
     TextPanel->SetVisibility(ESlateVisibility::Collapsed);
   }
 }
@@ -102,13 +107,29 @@ void UInteractionWidget::UpdateTextPanelAnimation(float DeltaTime) {
     return;
   }
 
-  // Get fade duration from settings
+  // Get settings
   float FadeDuration = 0.3f;
+  float Elasticity = 2.0f;
   if (const UInteractionSettings *Settings = UInteractionSettings::Get()) {
     FadeDuration = Settings->DefaultFadeDuration;
+    Elasticity = Settings->DefaultAnimationElasticity;
   }
 
-  // Linear fade
+  // Spring parameters for elastic scale
+  const float SpringStiffness = 300.0f;
+  const float Damping = 15.0f + (10.0f - Elasticity) * 2.0f;
+
+  // Elastic scale animation
+  const float ScaleDisplacement = TargetTextPanelScale - CurrentTextPanelScale;
+  const float SpringForce = ScaleDisplacement * SpringStiffness;
+  const float DampingForce = -TextPanelScaleVelocity * Damping;
+  const float Acceleration = SpringForce + DampingForce;
+
+  TextPanelScaleVelocity += Acceleration * DeltaTime;
+  CurrentTextPanelScale += TextPanelScaleVelocity * DeltaTime;
+  CurrentTextPanelScale = FMath::Max(0.0f, CurrentTextPanelScale);
+
+  // Linear opacity animation
   const float FadeSpeed = FadeDuration > 0.0f ? 1.0f / FadeDuration : 100.0f;
   if (CurrentTextPanelOpacity < TargetTextPanelOpacity) {
     CurrentTextPanelOpacity =
@@ -120,12 +141,23 @@ void UInteractionWidget::UpdateTextPanelAnimation(float DeltaTime) {
                    TargetTextPanelOpacity);
   }
 
+  // Apply to TextPanel
   TextPanel->SetRenderOpacity(CurrentTextPanelOpacity);
+  TextPanel->SetRenderScale(
+      FVector2D(CurrentTextPanelScale, CurrentTextPanelScale));
 
   // Check if animation complete
-  if (FMath::IsNearlyEqual(CurrentTextPanelOpacity, TargetTextPanelOpacity,
-                           0.01f)) {
+  const bool bScaleSettled =
+      FMath::IsNearlyEqual(CurrentTextPanelScale, TargetTextPanelScale,
+                           0.01f) &&
+      FMath::Abs(TextPanelScaleVelocity) < 0.1f;
+  const bool bOpacitySettled = FMath::IsNearlyEqual(
+      CurrentTextPanelOpacity, TargetTextPanelOpacity, 0.01f);
+
+  if (bScaleSettled && bOpacitySettled) {
     CurrentTextPanelOpacity = TargetTextPanelOpacity;
+    CurrentTextPanelScale = TargetTextPanelScale;
+    TextPanelScaleVelocity = 0.0f;
     bIsTextPanelAnimating = false;
 
     if (TargetTextPanelOpacity == 0.0f) {

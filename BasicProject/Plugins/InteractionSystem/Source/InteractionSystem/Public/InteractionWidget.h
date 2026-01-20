@@ -95,5 +95,8 @@ private:
   /** Text panel animation state */
   float CurrentTextPanelOpacity = 0.0f;
   float TargetTextPanelOpacity = 0.0f;
+  float CurrentTextPanelScale = 0.0f;
+  float TargetTextPanelScale = 0.0f;
+  float TextPanelScaleVelocity = 0.0f;
   bool bIsTextPanelAnimating = false;
 };
