@@ -12,6 +12,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "InteractionDetectorComponent.h"
 
 ATopDownCharacter::ATopDownCharacter() {
   PrimaryActorTick.bCanEverTick = true;
@@ -114,9 +115,17 @@ void ATopDownCharacter::SetupPlayerInputComponent(
   if (UEnhancedInputComponent *EnhancedInputComponent =
           Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
     if (UCharacterSystemConfig *Config = GetConfig()) {
+      // Move action
       if (UInputAction *MoveAction = Config->MoveAction.LoadSynchronous()) {
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered,
                                            this, &ATopDownCharacter::Move);
+      }
+      // Interact action
+      if (UInputAction *InteractAction =
+              Config->InteractAction.LoadSynchronous()) {
+        EnhancedInputComponent->BindAction(InteractAction,
+                                           ETriggerEvent::Started, this,
+                                           &ATopDownCharacter::Interact);
       }
     }
   }
@@ -131,6 +140,14 @@ void ATopDownCharacter::Move(const FInputActionValue &Value) {
         FVector(MovementVector.Y, MovementVector.X, 0.f);
 
     AddMovementInput(MoveDirection, 1.0f, false);
+  }
+}
+
+void ATopDownCharacter::Interact() {
+  // Find InteractionDetectorComponent and try to interact
+  if (UInteractionDetectorComponent *Detector =
+          FindComponentByClass<UInteractionDetectorComponent>()) {
+    Detector->TryInteract();
   }
 }
 

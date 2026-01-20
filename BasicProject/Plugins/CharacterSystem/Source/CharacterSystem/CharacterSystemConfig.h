@@ -6,7 +6,6 @@
 #include "Engine/DataAsset.h"
 #include "CharacterSystemConfig.generated.h"
 
-
 class UInputMappingContext;
 class UInputAction;
 
@@ -30,6 +29,10 @@ public:
   /** Move Input Action */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
   TSoftObjectPtr<UInputAction> MoveAction;
+
+  /** Interact Input Action */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+  TSoftObjectPtr<UInputAction> InteractAction;
 
   // ============================================
   // Camera Settings

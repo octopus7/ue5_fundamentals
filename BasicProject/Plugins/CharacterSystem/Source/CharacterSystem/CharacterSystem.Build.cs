@@ -29,7 +29,8 @@ public class CharacterSystem : ModuleRules
 				"InputCore",
 				"EnhancedInput",
 				"GameplayTags",
-				"DeveloperSettings"
+				"DeveloperSettings",
+				"InteractionSystem"
 			}
 		);
 			
