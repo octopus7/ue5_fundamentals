@@ -25,6 +25,10 @@
 		{
 			"Name": "EnhancedInput",
 			"Enabled": true
+		},
+		{
+			"Name": "InteractionSystem",
+			"Enabled": true
 		}
 	]
 }
