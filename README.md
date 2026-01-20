@@ -33,6 +33,10 @@ This project covers the basic fundamentals of Unreal Engine 5, intended as a lea
 
 ## 🔗 Plugin Dependency Graph | 플러그인 의존성 그래프
 
+### Compile-Time Dependencies (Build.cs) | 컴파일 타임 의존성
+
+C++ 코드에서 `#include`나 클래스 참조가 있을 때 필요한 의존성입니다.
+
 ```mermaid
 flowchart TB
     subgraph Engine["Unreal Engine Modules"]
@@ -67,13 +71,58 @@ flowchart TB
     BP --> IS
 ```
 
-**Dependency Summary | 의존성 요약:**
-
 | Module | Dependencies | Description |
 |--------|--------------|-------------|
 | **InteractionSystem** | EnhancedInput, UMG, DeveloperSettings | Core interaction detection and event routing |
 | **CharacterSystem** | EnhancedInput, GameplayTags, InteractionSystem | Top-down character with input and camera |
 | **BasicProject** | EnhancedInput, InteractionSystem | Main game module with subsystems |
+
+---
+
+### Runtime Dependencies (Blueprint/Reflection) | 런타임 의존성
+
+블루프린트 상속, 레벨 배치, GameMode 설정 등 리플렉션 시스템을 통한 의존성입니다.  
+Build.cs에 명시할 필요 없이 플러그인 활성화만으로 사용 가능합니다.
+
+```mermaid
+flowchart TB
+    subgraph Plugins["Custom Plugins"]
+        IS[InteractionSystem<br/>상호작용 시스템]
+        CS[CharacterSystem<br/>캐릭터 시스템]
+    end
+
+    subgraph Main["Main Project"]
+        BP[BasicProject<br/>메인 게임 모듈]
+    end
+
+    subgraph Assets["Blueprint Assets"]
+        BPC[BP_TopDownCharacter<br/>캐릭터 블루프린트]
+        GM[BP_GameMode<br/>게임모드]
+        Door[BP_Door<br/>문 액터]
+    end
+
+    %% Compile-time (solid)
+    CS -->|C++| IS
+    BP -->|C++| IS
+
+    %% Runtime/Blueprint (dashed)
+    BP -.->|Blueprint| CS
+    BPC -.->|inherits| CS
+    GM -.->|uses| BPC
+    Door -.->|uses| IS
+```
+
+| Relationship | Type | Description |
+|-------------|------|-------------|
+| BasicProject → CharacterSystem | **Runtime** | BP_TopDownCharacter를 GameMode에서 사용 |
+| BP_TopDownCharacter → CharacterSystem | **Runtime** | C++ 클래스를 블루프린트에서 상속 |
+| BP_Door → InteractionSystem | **Runtime** | InteractableComponent를 블루프린트에서 추가 |
+
+> **Legend | 범례:**  
+> `───▶` Compile-time dependency (Build.cs 필요)  
+> `- - -▶` Runtime dependency (블루프린트/리플렉션, Build.cs 불필요)
+
+---
 
 ## 🚀 Getting Started | 시작하기
 
