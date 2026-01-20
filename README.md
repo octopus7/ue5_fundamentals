@@ -31,6 +31,50 @@ This project covers the basic fundamentals of Unreal Engine 5, intended as a lea
 
 ---
 
+## 🔗 Plugin Dependency Graph | 플러그인 의존성 그래프
+
+```mermaid
+flowchart TB
+    subgraph Engine["Unreal Engine Modules"]
+        EI[EnhancedInput]
+        UMG[UMG]
+        GT[GameplayTags]
+        DS[DeveloperSettings]
+    end
+
+    subgraph Plugins["Custom Plugins"]
+        IS[InteractionSystem<br/>상호작용 시스템]
+        CS[CharacterSystem<br/>캐릭터 시스템]
+    end
+
+    subgraph Main["Main Project"]
+        BP[BasicProject<br/>메인 게임 모듈]
+    end
+
+    %% InteractionSystem dependencies
+    IS --> EI
+    IS --> UMG
+    IS --> DS
+
+    %% CharacterSystem dependencies
+    CS --> EI
+    CS --> GT
+    CS --> DS
+    CS --> IS
+
+    %% BasicProject dependencies
+    BP --> EI
+    BP --> IS
+```
+
+**Dependency Summary | 의존성 요약:**
+
+| Module | Dependencies | Description |
+|--------|--------------|-------------|
+| **InteractionSystem** | EnhancedInput, UMG, DeveloperSettings | Core interaction detection and event routing |
+| **CharacterSystem** | EnhancedInput, GameplayTags, InteractionSystem | Top-down character with input and camera |
+| **BasicProject** | EnhancedInput, InteractionSystem | Main game module with subsystems |
+
 ## 🚀 Getting Started | 시작하기
 
 1. Clone this repository | 이 저장소를 클론합니다
