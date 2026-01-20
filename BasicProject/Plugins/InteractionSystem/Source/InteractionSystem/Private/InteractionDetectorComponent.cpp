@@ -6,18 +6,34 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "InteractableComponent.h"
+#include "InteractionSettings.h"
 #include "Kismet/GameplayStatics.h"
 
 UInteractionDetectorComponent::UInteractionDetectorComponent() {
   PrimaryComponentTick.bCanEverTick = true;
   PrimaryComponentTick.TickInterval = 0.0f;
+
+  // Load defaults from settings
+  if (const UInteractionSettings *Settings = UInteractionSettings::Get()) {
+    DetectionRadius = Settings->DefaultDetectionRadius;
+    FadeDuration = Settings->DefaultFadeDuration;
+    AnimationElasticity = Settings->DefaultAnimationElasticity;
+  }
 }
 
 void UInteractionDetectorComponent::BeginPlay() {
   Super::BeginPlay();
 
-  // Create widget instance if widget class is set
-  if (WidgetClass) {
+  // If no widget class set, try to load from settings
+  TSubclassOf<UUserWidget> WidgetToUse = WidgetClass;
+  if (!WidgetToUse) {
+    if (const UInteractionSettings *Settings = UInteractionSettings::Get()) {
+      WidgetToUse = Settings->DefaultWidgetClass.LoadSynchronous();
+    }
+  }
+
+  // Create widget instance if widget class is available
+  if (WidgetToUse) {
     APlayerController *PC =
         Cast<APlayerController>(GetOwner()->GetInstigatorController());
     if (!PC) {
@@ -25,7 +41,7 @@ void UInteractionDetectorComponent::BeginPlay() {
     }
 
     if (PC) {
-      WidgetInstance = CreateWidget<UUserWidget>(PC, WidgetClass);
+      WidgetInstance = CreateWidget<UUserWidget>(PC, WidgetToUse);
       if (WidgetInstance) {
         WidgetInstance->AddToViewport();
         WidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -95,13 +111,6 @@ void UInteractionDetectorComponent::UpdateNearestInteractable() {
   UInteractableComponent *NearestInteractable = nullptr;
   float NearestDistanceSquared = DetectionRadius * DetectionRadius;
 
-  // Find all actors with interactable components within radius
-  TArray<AActor *> OverlappingActors;
-  TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-  ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
-  ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
-  ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
-
   // Use simple distance check for all actors with interactable components
   for (TActorIterator<AActor> It(GetWorld()); It; ++It) {
     AActor *Actor = *It;
@@ -163,26 +172,20 @@ void UInteractionDetectorComponent::UpdateElasticAnimation(float DeltaTime) {
   }
 
   // Spring damping parameters
-  const float SpringStiffness = 300.0f; // How fast it moves towards target
-  const float Damping = 15.0f + (10.0f - AnimationElasticity) *
-                                    2.0f; // Lower elasticity = more damping
+  const float SpringStiffness = 300.0f;
+  const float Damping = 15.0f + (10.0f - AnimationElasticity) * 2.0f;
 
   // ===== Scale Animation (Elastic/Spring) =====
-  // Calculate spring force
   const float ScaleDisplacement = TargetScale - CurrentScale;
   const float SpringForce = ScaleDisplacement * SpringStiffness;
   const float DampingForce = -ScaleVelocity * Damping;
   const float Acceleration = SpringForce + DampingForce;
 
-  // Update velocity and position
   ScaleVelocity += Acceleration * DeltaTime;
   CurrentScale += ScaleVelocity * DeltaTime;
-
-  // Clamp scale to prevent negative values
   CurrentScale = FMath::Max(0.0f, CurrentScale);
 
-  // ===== Opacity Animation (Linear, follows scale) =====
-  // Opacity follows scale but clamps to 0-1
+  // ===== Opacity Animation (Linear) =====
   const float FadeSpeed = FadeDuration > 0.0f ? 1.0f / FadeDuration : 100.0f;
   if (CurrentOpacity < TargetOpacity) {
     CurrentOpacity =
