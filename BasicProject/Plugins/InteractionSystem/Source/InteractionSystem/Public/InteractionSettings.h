@@ -51,11 +51,17 @@ public:
             meta = (DisplayName = "Default Widget Class"))
   TSoftClassPtr<UUserWidget> DefaultWidgetClass;
 
-  /** Default detection radius in cm */
+  /** Default visibility radius in cm (marker appears) */
   UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Detection",
-            meta = (DisplayName = "Default Detection Radius",
+            meta = (DisplayName = "Default Visibility Radius",
                     ClampMin = "10.0"))
-  float DefaultDetectionRadius = 50.0f;
+  float DefaultVisibilityRadius = 300.0f;
+
+  /** Default interaction radius in cm (can interact + text panel appears) */
+  UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Detection",
+            meta = (DisplayName = "Default Interaction Radius",
+                    ClampMin = "10.0"))
+  float DefaultInteractionRadius = 150.0f;
 
   /** Default fade animation duration in seconds */
   UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Animation",
