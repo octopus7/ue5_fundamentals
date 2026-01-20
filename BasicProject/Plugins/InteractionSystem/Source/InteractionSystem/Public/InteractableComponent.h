@@ -7,7 +7,6 @@
 #include "InteractionTypes.h"
 #include "InteractableComponent.generated.h"
 
-
 class UWidgetComponent;
 class UInteractionWidget;
 
@@ -87,8 +86,10 @@ public:
   FText DisplayText = NSLOCTEXT("Interaction", "DefaultText", "Interact");
 
   /** If true, processes interaction locally via OnInteractLocal delegate */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
-  bool bHandleLocally = true;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction",
+            meta = (ToolTip = "DEBUG ONLY: Enable local handling for testing. "
+                              "Production code should use the global router."))
+  bool bHandleLocally = false;
 
   /** Whether this component can currently be interacted with */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")

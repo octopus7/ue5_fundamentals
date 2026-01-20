@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/Engine.h"
+#include "InteractionRouter.h"
 #include "InteractionSettings.h"
 #include "InteractionWidget.h"
 
@@ -85,8 +86,12 @@ void UInteractableComponent::TryInteract(AActor *InteractionInstigator) {
     }
   }
 
-  // Step 2: Broadcast to global listeners if not handled locally
+  // Step 2: Route to global systems via Router if not handled locally
   if (!EventData.bHandled) {
+    // Route through the global router (MainProject's subsystem)
+    FInteractionRouterRegistry::Route(EventData);
+
+    // Also broadcast to static delegate for backwards compatibility
     OnInteractionEvent.Broadcast(EventData);
 
     if (!EventData.bHandled && GEngine) {
